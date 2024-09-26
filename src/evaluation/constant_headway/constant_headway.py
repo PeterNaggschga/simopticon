@@ -39,26 +39,16 @@ def get_constant_headway(run_ids: list) -> np.float128:
     # @param run_ids: List of strings representing the OMNeT++ run ids of all runs to be evaluated.
     # @return A longfloat rating the deviation from the pre-defined gap.
 
-    # create filter for opp_scavetool to only use files with correct run ids
-    run_filter = f"(run =~ {run_ids[0]}"
-    for i in range(1, len(run_ids)):
-        run_filter += f" OR run =~ {run_ids[i]}"
-    run_filter += ")"
-
-    # find out pre-defined gap
-    name_filter = f"{run_filter} AND **.scenario.caccSpacing"
-    headway = float(res.get_param_assignments(name_filter).iloc[0]["value"][0])
-
     # iterate over all simulation runs
     values = np.empty(len(run_ids), dtype=np.float128)
     for i in range(len(run_ids)):
         # get gap vectors of all but the first vehicles simulated in the given run
-        name_filter = f"run =~ {run_ids[i]} AND distance AND module =~ **.node[*].appl AND NOT module =~ **.node[0]" \
+        name_filter = f"run =~ {run_ids[i]} AND controlError AND module =~ **.node[*].appl AND NOT module =~ **.node[0]" \
                       f".appl"
         # fetch vectors
-        vecs = res.get_vectors(name_filter)
+        vecs = res.get_vectors(name_filter)     
         # calculate square error on each value
-        vecs = ops.expression(vecs, f"(y - {headway}) ** 2")
+        vecs = ops.expression(vecs, f"y ** 2")
         # calculate means over vectors
         means = np.array([v[1]["vecvalue"].mean(dtype=np.float128) for v in vecs.iterrows()])
         # calculate the sum of means and add to values
